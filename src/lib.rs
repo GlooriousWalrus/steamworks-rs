@@ -33,6 +33,8 @@ mod remote_storage;
 pub use crate::remote_storage::*;
 mod ugc;
 pub use crate::ugc::*;
+mod gamecoordinator;
+pub use crate::gamecoordinator::*;
 
 use std::sync::{ Arc, Mutex };
 use std::ffi::{CString, CStr};
@@ -290,6 +292,26 @@ impl <Manager> Client<Manager> {
             }
         }
     }
+
+    /// Returns an accessor to the steam game coordinator interface
+    pub fn get_gamecoordinator(&self, pipe: sys::HSteamPipe, client: sys::HSteamUser) -> GameCoordinator<Manager> {
+        unsafe {
+            let gamcoord = sys::SteamAPI_ISteamClient_GetISteamGenericInterface(
+                self.client,
+                client,
+                pipe,
+                CString::new(
+                    gamecoordinator::STEAMGAMECOORDINATOR_INTERFACE_VERSION)
+                    .unwrap()
+                    .as_ptr(),
+            );
+            debug_assert!(!gamcoord.is_null());
+            GameCoordinator {
+                gamcoord,
+                inner: self.inner.clone(),
+            }
+        }
+    }
 }
 
 impl <Manager> Drop for Inner<Manager> {
@@ -450,5 +472,9 @@ mod tests {
             single.run_callbacks();
             ::std::thread::sleep(::std::time::Duration::from_millis(100));
         }
+
+        let shit = client.get_gamecoordinator();
+        println!("Friends");
+
     }
 }

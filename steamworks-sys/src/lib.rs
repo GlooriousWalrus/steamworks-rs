@@ -28,6 +28,9 @@ pub struct ISteamGameServer(c_void);
 pub struct ISteamNetworking(c_void);
 #[repr(transparent)]
 pub struct ISteamUGC(c_void);
+// ///walrus
+// #[repr(transparent)]
+// pub struct ISteamGameCoordinator(c_void);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -36,6 +39,14 @@ pub struct CSteamID(pub u64);
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CGameID(pub u64);
 
+#[repr(C)]
+pub enum EGCResults {
+    k_EGCResultOK = 0,
+    k_EGCResultNoMessage = 1,
+    k_EGCResultBufferTooSmall = 2,
+    k_EGCResultNotLoggedOn = 3,
+    k_EGCResultInvalidMessage = 4,
+}
 
 #[repr(C)]
 pub enum EServerMode {
@@ -96,6 +107,9 @@ extern "C" {
     pub fn SteamAPI_ISteamClient_CreateSteamPipe(instance: *mut ISteamClient) -> HSteamPipe;
     pub fn SteamAPI_ISteamClient_BReleaseSteamPipe(instance: *mut ISteamClient, pipe: HSteamPipe) -> u8;
     pub fn SteamAPI_ISteamClient_ConnectToGlobalUser(instance: *mut ISteamClient, pipe: HSteamPipe) -> HSteamUser;
+
+    ///walrus
+    pub fn SteamAPI_ISteamClient_GetISteamGenericInterface(instance: *mut ISteamClient, user: HSteamUser, pipe: HSteamPipe, version: *const c_char) -> *mut c_void;
 
     pub fn SteamAPI_ISteamUtils_GetAppID(instance: *mut ISteamUtils) -> AppId_t;
     pub fn SteamAPI_ISteamUtils_GetSteamUILanguage(instance: *mut ISteamUtils) -> *const c_char;
@@ -214,6 +228,40 @@ extern "C" {
     ///
     /// Returns true if successful
     pub fn SteamAPI_ISteamUserStats_StoreStats(instance: *mut ISteamUserStats) -> bool;
+
+
+
+
+    ///walrus
+    /// https://partner.steamgames.com/doc/api/ISteamGameCoordinator#IsMessageAvailable
+    /// 
+    /// Returns true if a message is available
+    pub fn SteamAPI_ISteamGameCoordinator_IsMessageAvailable(
+        instance: *mut c_void,
+        msg_size: *mut u32,
+    ) -> bool;
+    /// https://partner.steamgames.com/doc/api/ISteamGameCoordinator#IsMessageAvailable
+    /// 
+    /// Fills the provided buffer with the first message in the queue and returns k_EGCResultOK or returns k_EGCResultNoMessage if there is no message waiting.
+    /// pcubMsgSize is filled with the message size.
+    /// If the provided buffer is not large enough to fit the entire message, k_EGCResultBufferTooSmall is returned and the message remains at the head of the queue.
+    pub fn SteamAPI_ISteamGameCoordinator_RetrieveMessage(
+        instance: *mut c_void,
+        pun_msg_type: *mut u32,
+        pub_dest: *mut c_void,
+        cub_dest: u32,
+        pcub_msg_size: *mut u32,
+    ) -> EGCResults;
+    /// https://partner.steamgames.com/doc/api/ISteamGameCoordinator#SendMessage
+    /// 
+    /// Sends a message to the Game Coordinator.
+    pub fn SteamAPI_ISteamGameCoordinator_SendMessage(
+        instance: *mut c_void,
+        un_msg_type: u32,
+        pub_data: *const c_void,
+        cub_data: u32,
+    ) -> EGCResults;
+
 
     pub fn SteamAPI_ISteamRemoteStorage_IsCloudEnabledForAccount(instance: *mut ISteamRemoteStorage) -> bool;
     pub fn SteamAPI_ISteamRemoteStorage_IsCloudEnabledForApp(instance: *mut ISteamRemoteStorage) -> bool;
